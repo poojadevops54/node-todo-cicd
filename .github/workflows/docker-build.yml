@@ -1,28 +1,43 @@
-name: Build Node Todo Docker Image
+name: Deploy Node Todo App using Private Runner
 
 on:
   push:
     branches:
       - main
 
-
 jobs:
-
-  docker-build:
-
-    runs-on: ubuntu-latest
+  build-deploy:
+    runs-on: self-hosted
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: eu-north-1
 
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build Docker Image
-      run: |
-        docker build -t node-todo-app:latest .
+      - name: Build Docker Image
+        run: docker build -t node/app:latest .
 
+      - name: Tag Docker Image
+        run: |
+          docker tag node/app:latest 577002943781.dkr.ecr.eu-north-1.amazonaws.com/node/app:latest
 
-    - name: Check Docker Image
-      run: |
-        docker images
+      - name: Push Docker Image to Amazon ECR
+        run: |
+          docker push 577002943781.dkr.ecr.eu-north-1.amazonaws.com/node/app:latest
+
+      - name: Deploy to Amazon ECS
+        run: |
+          aws ecs update-service \
+            --cluster NodeClustor \
+            --service node-todo-app-td-service-hdy5v8sf \
+            --force-new-deployment \
+            --region eu-north-1
