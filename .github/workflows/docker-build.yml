@@ -37,7 +37,7 @@ jobs:
       - name: Deploy to Amazon ECS
         run: |
           aws ecs update-service \
-            --cluster NodeClustor \
+            --cluster NodeCluster \
             --service node-todo-app-td-service-hdy5v8sf \
             --force-new-deployment \
             --region eu-north-1
