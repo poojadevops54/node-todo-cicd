@@ -16,29 +16,36 @@ jobs:
   build-deploy:
     runs-on: self-hosted
 
+    env:
+      AWS_REGION: eu-north-1
+      ECR_REGISTRY: 577002943781.dkr.ecr.eu-north-1.amazonaws.com
+      ECR_REPOSITORY: node/app
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Show Input Parameter
+      - name: Display Workflow Inputs
         run: |
           echo "Image Tag: ${{ github.event.inputs.imageTag || 'latest' }}"
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR using IAM Role
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $ECR_REGISTRY
 
       - name: Build Docker Image
         run: |
-          docker build -t node/app:${{ github.event.inputs.imageTag || 'latest' }} .
+          docker build -t $ECR_REPOSITORY:${{ github.event.inputs.imageTag || 'latest' }} .
 
       - name: Tag Docker Image
         run: |
-          docker tag node/app:${{ github.event.inputs.imageTag || 'latest' }} \
-          577002943781.dkr.ecr.eu-north-1.amazonaws.com/node/app:${{ github.event.inputs.imageTag || 'latest' }}
+          docker tag $ECR_REPOSITORY:${{ github.event.inputs.imageTag || 'latest' }} \
+          $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.event.inputs.imageTag || 'latest' }}
 
       - name: Push Docker Image to Amazon ECR
         run: |
-          docker push 577002943781.dkr.ecr.eu-north-1.amazonaws.com/node/app:${{ github.event.inputs.imageTag || 'latest' }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.event.inputs.imageTag || 'latest' }}
 
       - name: Deploy to Amazon ECS
         run: |
@@ -46,4 +53,4 @@ jobs:
             --cluster NodeCluster \
             --service node-todo-app-td-service-hdy5v8sf \
             --force-new-deployment \
-            --region eu-north-1
+            --region $AWS_REGION
