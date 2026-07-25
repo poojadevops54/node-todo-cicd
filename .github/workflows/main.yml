@@ -1,16 +1,34 @@
-name: Test Self Hosted Runner
+name: Test Multiple Self Hosted Runners
 
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: self-hosted
+  dev-job:
+    runs-on:
+      - self-hosted
+      - dev
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test Runner
-        run: echo "Self-hosted runner is working!"
+      - name: Test Dev Runner
+        run: |
+          echo "Running on DEV Runner"
+          hostname
+
+  qa-job:
+    runs-on:
+      - self-hosted
+      - qa
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test QA Runner
+        run: |
+          echo "Running on QA Runner"
+          hostname
