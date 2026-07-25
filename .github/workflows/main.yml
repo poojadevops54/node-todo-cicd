@@ -1,34 +1,46 @@
-name: Test Multiple Self Hosted Runners
+name: Node Todo CI/CD
 
 on:
-  push:
-    branches:
-      - master
   workflow_dispatch:
 
 jobs:
-  dev-job:
-    runs-on:
-      - self-hosted
-      - dev
+  build-and-push:
+    runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@v4
 
-      - name: Test Dev Runner
+      # Checkout source code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      # Configure AWS credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+
+      # Login to Amazon ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      # Build Docker image
+      - name: Build Docker Image
         run: |
-          echo "Running on DEV Runner"
-          hostname
+          docker build -t node-todo .
 
-  qa-job:
-    runs-on:
-      - self-hosted
-      - qa
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test QA Runner
+      # Tag Docker image
+      - name: Tag Docker Image
         run: |
-          echo "Running on QA Runner"
-          hostname
+          docker tag node-todo:latest 577002943781.dkr.ecr.eu-north-1.amazonaws.com/node/app:latest
+
+
+      # Push image to ECR
+      - name: Push Image to ECR
+        run: |
+          docker push 577002943781.dkr.ecr.eu-north-1.amazonaws.com/node/app:latest
