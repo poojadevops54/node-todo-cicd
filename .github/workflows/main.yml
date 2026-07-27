@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build Node Todo Docker Image
 
 on:
   workflow_dispatch:
