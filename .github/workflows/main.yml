@@ -11,7 +11,7 @@ jobs:
   build-and-push:
 
     # Run on your EC2 self-hosted runner
-    runs-on: [self-hosted, devops, docker]
+    runs-on: [self-hosted, qa, backend]
 
     steps:
 
