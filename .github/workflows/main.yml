@@ -1,31 +1,70 @@
-name: Node Todo CI/CD
+name: Build and Push Docker Image
 
 on:
   workflow_dispatch:
 
+env:
+  AWS_REGION: eu-north-1
+  ECR_REPOSITORY: node-app
+
 jobs:
   build-and-push:
-    runs-on:
-      - self-hosted
-      - linux
-      - devops
-      - node
 
-    env:
-      AWS_REGION: eu-north-1
-      ECR_REGISTRY: 577002943781.dkr.ecr.eu-north-1.amazonaws.com
-      ECR_REPOSITORY: node/app
+    # Run on your EC2 self-hosted runner
+    runs-on: [self-hosted, devops, docker]
 
     steps:
+
+      # Checkout repository code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+
+      # Verify runner and Docker
+      - name: Verify runner
+        run: |
+          echo "Running on self-hosted runner"
+          hostname
+          whoami
+          docker --version
+
+
+      # Configure AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+
+      # Login to Amazon ECR
       - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+
+      # Build Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build \
+          -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest .
+
+
+      # Push Docker Image to ECR
+      - name: Push Docker Image
+        run: |
+          docker push \
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+
+      # Verify Image
+      - name: Verify Docker Image
+        run: |
+          docker images
+
+
+      # Clean Docker space after build
+      - name: Docker Cleanup
+        run: |
+          docker system prune -af
